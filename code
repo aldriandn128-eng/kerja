@@ -1,1 +1,169 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
+// 2. Data type: Structure to define a Room Booking
+struct Booking {
+    int roomNumber;
+    char guestName[101];
+    char roomType[20];
+    float price;
+};
+
+// Global variables
+struct Booking bookings[100];
+int count = 0;
+const char* DATA_FILE = "hotel_bookings.txt";
+
+// Function Prototypes
+void addBooking();
+void sortBookings();
+void saveToFile();
+void loadFromFile();
+void displayReport();
+
+int main() {
+    int choice;
+
+    // 4. Read File: Automatically load existing bookings at start
+    loadFromFile();
+
+    // 1. Menu, Input & Output
+    while (1) {
+        printf("\n--- HOTEL BOOKING SYSTEM ---\n");
+        printf("1. Add New Booking\n");
+        printf("2. Sort Bookings by Guest Name\n");
+        printf("3. Save Data to File\n");
+        printf("4. Generate Booking Report\n");
+        printf("5. Exit\n");
+        printf("Enter your choice: ");
+        
+        if (scanf("%d", &choice) != 1) break;
+        getchar(); // clear newline buffer
+
+        if (choice == 1) addBooking();
+        else if (choice == 2) sortBookings();
+        else if (choice == 3) saveToFile();
+        else if (choice == 4) displayReport();
+        else if (choice == 5) break;
+        else printf("Invalid selection. Try again.\n");
+    }
+
+    return 0;
+}
+
+
+void addBooking() {
+    char nameInput[200];
+    int len;
+
+    if (count >= 100) {
+        printf("Hotel is full!\n");
+        return;
+    }
+
+    printf("Enter Guest Name (5-100 characters): ");
+    fgets(nameInput, sizeof(nameInput), stdin);
+    nameInput[strcspn(nameInput, "\n")] = 0; // Remove newline
+
+    // String Manipulation/Selection: Validate length (Requirement from image)
+    len = strlen(nameInput);
+    if (len < 5 || len > 100) {
+        printf("Error: Name must be between 5 and 100 characters.\n");
+        return;
+    }
+
+    strcpy(bookings[count].guestName, nameInput);
+    
+    printf("Enter Room Number: ");
+    scanf("%d", &bookings[count].roomNumber);
+    
+    printf("Enter Room Type (Single/Double/Suite): ");
+    scanf("%s", bookings[count].roomType);
+    
+    printf("Enter Price per Night: ");
+    scanf("%f", &bookings[count].price);
+
+    count++;
+    printf("Booking added successfully!\n");
+}
+
+
+void sortBookings() {
+    int i, j;
+    struct Booking temp;
+
+    for (i = 0; i < count - 1; i++) {
+        for (j = 0; j < count - i - 1; j++) {
+            // Sorting alphabetically by Guest Name
+            if (strcmp(bookings[j].guestName, bookings[j+1].guestName) > 0) {
+                temp = bookings[j];
+                bookings[j] = bookings[j+1];
+                bookings[j+1] = temp;
+            }
+        }
+    }
+    printf("Bookings sorted by guest name.\n");
+}
+
+
+void saveToFile() {
+    int i;
+    FILE *file = fopen(DATA_FILE, "w");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+
+    for (i = 0; i < count; i++) {
+        fprintf(file, "%d|%s|%s|%.2f\n", 
+                bookings[i].roomNumber, 
+                bookings[i].guestName, 
+                bookings[i].roomType, 
+                bookings[i].price);
+    }
+
+    fclose(file);
+    printf("All records saved to %s\n", DATA_FILE);
+}
+
+
+void loadFromFile() {
+    FILE *file = fopen(DATA_FILE, "r");
+    if (file == NULL) return; // No file yet, start fresh
+
+    while (fscanf(file, "%d|%[^|]|%[^|]|%f\n", 
+           &bookings[count].roomNumber, 
+           bookings[count].guestName, 
+           bookings[count].roomType, 
+           &bookings[count].price) == 4) {
+        count++;
+    }
+    fclose(file);
+}
+
+
+void displayReport() {
+    int i;
+    float totalRevenue = 0;
+
+    if (count == 0) {
+        printf("\nNo bookings found.\n");
+        return;
+    }
+
+    printf("\n%-10s %-25s %-15s %-10s\n", "Room #", "Guest Name", "Type", "Price");
+    printf("------------------------------------------------------------\n");
+    
+    for (i = 0; i < count; i++) {
+        printf("%-10d %-25s %-15s $%-10.2f\n", 
+               bookings[i].roomNumber, 
+               bookings[i].guestName, 
+               bookings[i].roomType, 
+               bookings[i].price);
+        totalRevenue += bookings[i].price;
+    }
+    
+    printf("------------------------------------------------------------\n");
+    printf("Total Bookings: %d | Projected Revenue: $%.2f\n", count, totalRevenue);
+}
